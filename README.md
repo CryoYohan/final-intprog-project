@@ -57,7 +57,7 @@ npm test
 ```
 Ensure package.json is properly configured for testing
 
-🎨 Frontend Testing
+### 🎨 Frontend Testing
 ✅ Using Fake Backend
 Ensure FakeBackendInterceptor is enabled in app.module.ts
 
@@ -66,7 +66,7 @@ Run the development server:
 ```bash
 ng serve
 ```
-🔄 Using Real Backend
+### 🔄 Using Real Backend
 Remove FakeBackendInterceptor from app.module.ts
 
 Update environment.apiUrl with your actual backend URL
@@ -89,7 +89,7 @@ src/
 │   ├── shared/         # Reusable components, models, services
 │   └── interceptors/   # Auth & fake backend interceptors
 ```
-📸 Screenshots
+### 📸 Screenshots
 Replace the square brackets below with actual screenshots.
 
 Login Page: [login-page-screenshot]
@@ -100,19 +100,19 @@ Employee Management: [employee-management-screenshot]
 
 Request Form: [request-form-screenshot]
 
-📌 Notes
+## 📌 Notes
 Intended for educational use and may use simplified security/auth flows
 
 Swap the fake backend for a real API for production use
 
-🛠 Tech Stack
+### 🛠 Tech Stack
 Frontend: Angular 10+, TypeScript, Bootstrap
 
 Testing: Jasmine, Karma, Postman
 
 Backend: Simulated in-app interceptor service
 
-📬 Contact
+### 📬 Contact
 Feel free to open an issue or submit a pull request for questions, improvements, or contributions.
 Thanks for checking it out! 🎉
 
