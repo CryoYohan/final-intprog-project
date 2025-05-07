@@ -1,94 +1,119 @@
-🚀 Final INTPROG Project
+# 🚀 Final INTPROG Project
+
 A feature-rich Angular application designed for internal employee and department management. This project includes user authentication, role-based access, request handling, and workflow management — all built with a responsive Bootstrap UI and supported by a simulated backend for development.
 
-🌟 Frontend Features
-🔐 User Authentication
-Email-based sign-up with verification, secure login/logout, and profile management.
+---
 
-🛡️ Role-Based Access Control
-Admin users have extended permissions for managing employees and departments.
+## 🌟 Frontend Features
 
-👥 Employee Management
-View, add, edit, transfer, and delete employee records. Assign users to departments seamlessly.
+### 🔐 User Authentication  
+- Email-based sign-up with verification  
+- Secure login/logout  
+- Profile management  
 
-🏢 Department Management
-Dynamically manage departments in a centralized settings module.
+### 🛡️ Role-Based Access Control  
+- Admin users have extended permissions  
+- Manage employees and departments based on roles  
 
-🔄 Workflow Management
-Create and monitor transactional workflows (e.g., onboarding, department transfers).
+### 👥 Employee Management  
+- View, add, edit, transfer, and delete employee records  
+- Assign users to departments  
 
-📝 Request Management
-Employees can create and manage requests involving multiple items (e.g., equipment, leave).
+### 🏢 Department Management  
+- Dynamically create and update departments  
+- Managed via a centralized settings module  
 
-💻 Responsive UI
-Mobile-friendly, Bootstrap-powered interface with client-side validation and real-time error handling.
+### 🔄 Workflow Management  
+- Define and monitor transactional workflows  
+- Examples: onboarding, department transfers  
 
-🔧 Fake Backend Integration
-A simulated API layer allows development and testing without a real backend.
+### 📝 Request Management  
+- Employees can submit requests with multiple items (equipment, leave, etc.)  
+- Admins can review and manage submitted requests  
 
-🧪 Testing Instructions
-🔙 Backend Testing
-API Testing
-Use Postman or similar tools:
+### 💻 Responsive UI  
+- Built with Bootstrap  
+- Mobile-friendly layout  
+- Form validation and real-time error feedback  
+
+### 🔧 Fake Backend Integration  
+- Simulates real API responses  
+- Allows development without a real backend  
+
+---
+
+## 🧪 Testing Instructions
+
+### 🔙 Backend Testing
+
+**API Testing using Postman**  
+```http
 POST http://localhost:4000/accounts/register
-
+```
 Run Unit Tests
 
-bash
-Copy
-Edit
+```bash
 npm test
-(Ensure test configuration is properly set in package.json)
+```
+Ensure package.json is properly configured for testing
 
 🎨 Frontend Testing
-✅ With Fake Backend
-Ensure FakeBackendInterceptor is enabled in app.module.ts.
+✅ Using Fake Backend
+Ensure FakeBackendInterceptor is enabled in app.module.ts
 
-Run:
+Run the development server:
 
-bash
-Copy
-Edit
+```bash
 ng serve
-🔄 With Real Backend
-Remove FakeBackendInterceptor from app.module.ts.
+```
+🔄 Using Real Backend
+Remove FakeBackendInterceptor from app.module.ts
 
-Update environment.apiUrl with your actual backend URL.
+Update environment.apiUrl with your actual backend URL
 
-Run:
+Run the development server:
 
-bash
-Copy
-Edit
+```bash
 ng serve
+```
 🧪 Run Frontend Unit Tests
-bash
-Copy
-Edit
+```bash
 ng test
-📂 Project Structure Highlights
-src/app/auth: Authentication and user management
+```
+📂 Project Structure Overview
+```bash
+src/
+├── app/
+│   ├── auth/           # Authentication and user-related features
+│   ├── admin/          # Admin-only modules: employee & department management
+│   ├── shared/         # Reusable components, models, services
+│   └── interceptors/   # Auth & fake backend interceptors
+```
+📸 Screenshots
+Replace the square brackets below with actual screenshots.
 
-src/app/admin: Admin-exclusive modules (employee & department management)
+Login Page: [login-page-screenshot]
 
-src/app/shared: Reusable components, models, and services
+Dashboard: [dashboard-screenshot]
 
-src/app/interceptors: Backend simulation and auth interceptors
+Employee Management: [employee-management-screenshot]
 
-📸 Screenshots (optional)
-Add some screenshots or screen recordings of key UI features here for visual context.
+Request Form: [request-form-screenshot]
 
 📌 Notes
-This project is designed for learning purposes and may use simplified security models.
+Intended for educational use and may use simplified security/auth flows
 
-Swap out the fake backend with a real one when moving to production.
+Swap the fake backend for a real API for production use
 
 🛠 Tech Stack
 Frontend: Angular 10+, TypeScript, Bootstrap
 
 Testing: Jasmine, Karma, Postman
 
-Backend (Simulated): In-app interceptor-based mock service
+Backend: Simulated in-app interceptor service
 
 📬 Contact
-For any questions or feedback, feel free to reach out via issues or pull requests.
+Feel free to open an issue or submit a pull request for questions, improvements, or contributions.
+Thanks for checking it out! 🎉
+
+
