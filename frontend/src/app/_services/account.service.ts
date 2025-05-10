@@ -14,7 +14,7 @@ export class AccountService {
     public account: Observable<Account | null>;
     private refreshTokenTimeout: any;
     private refreshingToken = false;
-    private readonly TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
+    private readonly TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds in time
 
     constructor(
         private router: Router,
