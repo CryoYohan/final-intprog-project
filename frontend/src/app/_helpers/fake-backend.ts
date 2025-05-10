@@ -96,7 +96,7 @@ function generateJwtToken(account: any): string {
             role: account.role,
             email: account.email,
             iat: now,
-            exp: now + (60 * 60 * 1000) // 1 hour expiry
+            exp: now + (24 * 60 * 60 * 1000) // 24 hours expiry
         };
         const payloadBase64 = btoa(JSON.stringify(payload));
         const signature = btoa('fake-jwt-secret-key');
@@ -135,8 +135,7 @@ function isTokenExpired(token: string): boolean {
         const payload = JSON.parse(atob(parts[1]));
         if (!payload || typeof payload.exp !== 'number') return true;
         
-        // Add a 5-minute buffer to prevent edge cases
-        return (payload.exp - 5 * 60 * 1000) < new Date().getTime();
+        return payload.exp < new Date().getTime();
     } catch (error) {
         console.error('Error checking token expiration:', error);
         return true;
@@ -180,7 +179,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 
                 const token = authHeader.split(' ')[1];
                 if (isTokenExpired(token)) {
-                    console.log('JWT token has expired');
                     return false;
                 }
                 
@@ -190,7 +188,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 
                 return !!account;
             } catch (error) {
-                console.error('Authentication check error:', error);
                 return false;
             }
         }
@@ -203,73 +200,79 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             if (!isAuthenticated()) return null;
             
             try {
-                const token = headers.get('Authorization').split(' ')[1];
+                const authHeader = headers.get('Authorization');
+                if (!authHeader?.startsWith('Bearer ')) return null;
+                
+                const token = authHeader.split(' ')[1];
                 const parts = token.split('.');
                 const payload = JSON.parse(atob(parts[1]));
-                return accounts.find(x => x.id === payload.id);
-            } catch {
+                
+                // Find account by ID from token payload
+                const account = accounts.find(x => x.id === payload.id);
+                if (!account) {
+                    return null;
+                }
+                
+                return account;
+            } catch (error) {
                 return null;
             }
         }
 
         function idFromUrl() {
             const urlParts = url.split('/');
-            return parseInt(urlParts[urlParts.length - 1]);
-        }
-
-        function getRefreshToken(headers: any): string | null {
-            try {
-                const authHeader = headers.get('Authorization');
-                if (!authHeader?.startsWith('Bearer ')) return null;
-                return authHeader.split(' ')[1];
-            } catch {
-                return null;
+            // Handle URLs that end with /status
+            if (urlParts[urlParts.length - 1] === 'status') {
+                return parseInt(urlParts[urlParts.length - 2]);
             }
+            return parseInt(urlParts[urlParts.length - 1]);
         }
 
         function getWorkflowsByEmployeeId() {
             if (!isAuthenticated()) return unauthorized();
             
             const internalId = parseInt(url.split('/').pop());
-            console.log('Looking for requests with employeeId:', internalId);
 
-            const employee = employees.find(e => e.id === internalId);
-            if (!employee) {
-                console.log('Employee not found with internal id:', internalId);
-                return notFound();
-            }
-            
-            const employeeRequests = requests.filter(x => x.employeeId === employee.id);
-            console.log('Found requests:', employeeRequests.length);
+            // Only include objects that are true workflows (type is 'Added', 'Updated', or 'Transferred' and do NOT have request-like properties)
+            const workflowTypes = ['Added', 'Updated', 'Transferred'];
+            const employeeWorkflows = workflows.filter(wf => {
+                return (
+                    wf.employeeId === internalId &&
+                    typeof wf.type === 'string' &&
+                    workflowTypes.includes(wf.type) &&
+                    !('items' in wf) &&
+                    !('typeId' in wf) &&
+                    !('description' in wf)
+                );
+            });
 
-            // Sort requests in descending order by creation date
-            const sortedRequests = [...employeeRequests].sort((a, b) => {
-                const dateA = new Date(a.createdDate);
-                const dateB = new Date(b.createdDate);
+            // Sort workflows in descending order by creation date
+            const sortedWorkflows = [...employeeWorkflows].sort((a, b) => {
+                const dateA = new Date(a.datetimecreated || a.createdDate);
+                const dateB = new Date(b.datetimecreated || b.createdDate);
                 return dateB.getTime() - dateA.getTime();
             });
 
-            return ok(sortedRequests.map(request => {
-                const items = requestItems.filter(item => item.requestId === request.id);
-                const requestType = requestTypes.find(t => t.id === request.typeId);
-                const account = accounts.find(a => a.id === employee.accountId);
-                
-                // Format employee name with proper capitalization
-                const firstName = account?.firstName ? account.firstName.charAt(0).toUpperCase() + account.firstName.slice(1).toLowerCase() : '';
-                const lastName = account?.lastName ? account.lastName.charAt(0).toUpperCase() + account.lastName.slice(1).toLowerCase() : '';
-                const fullName = `${firstName} ${lastName}`.trim();
-
-                return {
-                    id: request.id,
-                    type: requestType?.name || request.type,
-                    status: request.status,
-                    createdDate: request.createdDate,
-                    items: items,
-                    employee: {
-                        id: employee.id,
-                        employeeId: employee.employeeId,
-                        fullName: fullName
+            return ok(sortedWorkflows.map(workflow => {
+                // Ensure details is a string
+                let details = '';
+                if (typeof workflow.details === 'object') {
+                    details = workflow.details.task || '';
+                    if (workflow.details.additionalInfo) {
+                        details += ` - ${workflow.details.additionalInfo}`;
                     }
+                } else {
+                    details = workflow.details || '';
+                }
+                // Always provide datetimecreated
+                const datetimecreated = workflow.datetimecreated || workflow.createdDate;
+                return {
+                    id: workflow.id.toString(),
+                    type: workflow.type,
+                    details: details,
+                    status: workflow.status,
+                    datetimecreated: datetimecreated,
+                    employeeId: workflow.employeeId
                 };
             }));
         }
@@ -406,69 +409,68 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             if (!account.isVerified) return error('Please verify your email before logging in');
 
             try {
+                // Initialize refreshTokens array if it doesn't exist
+                if (!account.refreshTokens) {
+                    account.refreshTokens = [];
+                }
+
                 // Generate refresh token that expires in 7 days
                 const refreshToken = generateRefreshToken();
-                account.refreshTokens = account.refreshTokens || [];
                 
                 // Remove any expired refresh tokens
                 account.refreshTokens = account.refreshTokens.filter(rt => !isTokenExpired(rt));
                 
+                // Add new refresh token
                 account.refreshTokens.push(refreshToken);
                 localStorage.setItem(accountsKey, JSON.stringify(accounts));
 
                 const jwtToken = generateJwtToken(account);
         
-            return ok({
-                ...basicDetails(account),
+                return ok({
+                    ...basicDetails(account),
                     jwtToken,
                     refreshToken
-            });
+                });
             } catch (error) {
-                console.error('Authentication error:', error);
                 return error('An error occurred during authentication');
             }
         }
 
         function refreshToken() {
             try {
-                const refreshToken = getRefreshToken(headers);
-                if (!refreshToken) {
-                    console.log('No refresh token found');
-                    return unauthorized();
+                // Find the account with a valid (not expired) refresh token
+                let foundAccount = null;
+                let foundRefreshToken = null;
+                for (const acc of accounts) {
+                    if (Array.isArray(acc.refreshTokens) && acc.refreshTokens.length > 0) {
+                        // Find the most recent valid refresh token
+                        const validTokens = acc.refreshTokens.filter(rt => !isTokenExpired(rt));
+                        if (validTokens.length > 0) {
+                            foundAccount = acc;
+                            foundRefreshToken = validTokens[validTokens.length - 1];
+                            break;
+                        }
+                    }
                 }
-
-            const account = accounts.find(x => x.refreshTokens?.includes(refreshToken));
-                if (!account) {
-                    console.log('No account found for refresh token');
-                    return unauthorized();
-                }
-
-                // Verify refresh token hasn't expired
-                if (isTokenExpired(refreshToken)) {
-                    console.log('Refresh token has expired');
-                    // Remove expired refresh token
-            account.refreshTokens = account.refreshTokens.filter(x => x !== refreshToken);
-            localStorage.setItem(accountsKey, JSON.stringify(accounts));
+                if (!foundAccount || !foundRefreshToken) {
                     return unauthorized();
                 }
 
                 // Generate new tokens
                 const newRefreshToken = generateRefreshToken();
-                const jwtToken = generateJwtToken(account);
+                const jwtToken = generateJwtToken(foundAccount);
 
-                // Update refresh tokens
-                account.refreshTokens = account.refreshTokens.filter(x => x !== refreshToken && !isTokenExpired(x));
-                account.refreshTokens.push(newRefreshToken);
+                // Update refresh tokens - remove the used one, add the new one
+                foundAccount.refreshTokens = foundAccount.refreshTokens.filter(x => x !== foundRefreshToken && !isTokenExpired(x));
+                foundAccount.refreshTokens.push(newRefreshToken);
                 localStorage.setItem(accountsKey, JSON.stringify(accounts));
 
-                console.log('Token refresh successful');
-            return ok({
-                ...basicDetails(account),
+                return ok({
+                    ...basicDetails(foundAccount),
                     jwtToken,
                     refreshToken: newRefreshToken
-            });
+                });
             } catch (error) {
-                console.error('Refresh token error:', error);
                 return unauthorized();
             }
         }
@@ -476,7 +478,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         function revokeToken() {
             if (!isAuthenticated()) return unauthorized();
 
-            const refreshToken = getRefreshToken(headers);
+            const refreshToken = body.refreshToken;
             const account = accounts.find(x => x.refreshTokens?.includes(refreshToken));
 
             // revoke token and save
@@ -574,11 +576,14 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         function getRequests() {
             if (!isAuthenticated()) return unauthorized();
 
-            // Return all requests for admins, or filtered for regular users
-            let filteredRequests = [...requests];
+            // Only include objects that are true requests (have typeId or type matching requestTypes)
+            let filteredRequests = requests.filter(r => {
+                // Must have a typeId or a type that matches a requestType
+                return (typeof r.typeId === 'number') || (typeof r.type === 'string' && requestTypes.some(rt => rt.name === r.type));
+            });
             if (!isAdmin()) {
                 const currentUserId = currentAccount().id;
-                filteredRequests = requests.filter(x => x.employeeId === currentUserId);
+                filteredRequests = filteredRequests.filter(x => x.employeeId === currentUserId);
             }
 
             return ok(filteredRequests.map(request => {
@@ -645,16 +650,13 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             if (!isAuthenticated()) return unauthorized();
             
             const internalId = parseInt(url.split('/').pop());
-            console.log('Looking for requests with employeeId:', internalId);
 
             const employee = employees.find(e => e.id === internalId);
             if (!employee) {
-                console.log('Employee not found with internal id:', internalId);
                 return notFound();
             }
             
             const employeeRequests = requests.filter(x => x.employeeId === employee.id);
-            console.log('Found requests:', employeeRequests.length);
 
             // Sort requests in descending order by creation date
             const sortedRequests = [...employeeRequests].sort((a, b) => {
@@ -715,8 +717,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         function createRequest() {
             if (!isAuthenticated()) return unauthorized();
 
-            console.log('Received request data:', body);
-
             // Find employee by employeeId
             let targetEmployee;
             if (body.employeeId) {
@@ -730,7 +730,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 }
                 
                 if (!targetEmployee) {
-                    console.error('Employee not found for ID:', body.employeeId);
                     return error('Employee not found');
                 }
             } else {
@@ -738,12 +737,9 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 const currentUser = currentAccount();
                 targetEmployee = employees.find(e => e.accountId === currentUser.id);
                 if (!targetEmployee) {
-                    console.error('No employee found for current user');
                     return error('Current user is not an employee');
                 }
             }
-
-            console.log('Target employee found:', targetEmployee);
 
             const request = {
                 id: newRequestId(),
@@ -755,8 +751,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 createdDate: new Date().toISOString(),
                 lastModifiedDate: new Date().toISOString()
             };
-
-            console.log('Creating request:', request);
 
             // Validate required fields
             if (!request.type && !request.typeId) {
@@ -807,14 +801,11 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 }
             };
 
-            console.log('Created request:', response);
             return ok(response);
         }
 
         function updateRequest() {
             if (!isAuthenticated()) return unauthorized();
-
-            console.log('Received update data:', body);
 
             const requestId = idFromUrl();
             const request = requests.find(x => x.id === requestId);
@@ -872,41 +863,60 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             const requestId = idFromUrl();
             const request = requests.find(x => x.id === requestId);
             
-            if (!request) return notFound();
+            if (!request) {
+                return error('Request not found');
+            }
 
             const newStatus = body.status;
-            if (!newStatus) return error('Status is required');
+            if (!newStatus) {
+                return error('Status is required');
+            }
 
-            // Update request
-            request.status = newStatus;
-            request.lastModifiedDate = new Date().toISOString();
+            // Validate status value
+            const validStatuses = ['Pending', 'Approved', 'Rejected', 'Cancelled'];
+            if (!validStatuses.includes(newStatus)) {
+                return error('Invalid status value');
+            }
 
-            // Update requests array
-            const requestIndex = requests.findIndex(x => x.id === requestId);
-            requests[requestIndex] = request;
-            localStorage.setItem(requestsKey, JSON.stringify(requests));
+            try {
+                // Update request
+                request.status = newStatus;
+                request.lastModifiedDate = new Date().toISOString();
 
-            // Get related data for response
-            const employee = employees.find(e => e.id === request.employeeId);
-            const account = accounts.find(a => a.id === employee?.accountId);
-            const requestType = requestTypes.find(t => t.id === request.typeId);
-            const items = requestItems.filter(item => item.requestId === request.id);
+                // Update requests array
+                const requestIndex = requests.findIndex(x => x.id === requestId);
+                if (requestIndex === -1) {
+                    return error('Request not found');
+                }
+                requests[requestIndex] = request;
+                localStorage.setItem(requestsKey, JSON.stringify(requests));
 
-            // Format employee name
-            const firstName = account?.firstName ? account.firstName.charAt(0).toUpperCase() + account.firstName.slice(1).toLowerCase() : '';
-            const lastName = account?.lastName ? account.lastName.charAt(0).toUpperCase() + account.lastName.slice(1).toLowerCase() : '';
-            const fullName = `${firstName} ${lastName}`.trim();
+                // Get related data for response
+                const employee = employees.find(e => e.id === request.employeeId);
+                const account = accounts.find(a => a.id === employee?.accountId);
+                const requestType = requestTypes.find(t => t.id === request.typeId);
+                const items = requestItems.filter(item => item.requestId === request.id);
 
-            return ok({
-                ...request,
-                type: requestType?.name || request.type,
-                items: items,
-                employee: employee ? {
-                    id: employee.id,
-                    employeeId: employee.employeeId,
-                    fullName: fullName
-                } : null
-            });
+                // Format employee name
+                const firstName = account?.firstName ? account.firstName.charAt(0).toUpperCase() + account.firstName.slice(1).toLowerCase() : '';
+                const lastName = account?.lastName ? account.lastName.charAt(0).toUpperCase() + account.lastName.slice(1).toLowerCase() : '';
+                const fullName = `${firstName} ${lastName}`.trim();
+
+                const response = {
+                    ...request,
+                    type: requestType?.name || request.type,
+                    items: items,
+                    employee: employee ? {
+                        id: employee.id,
+                        employeeId: employee.employeeId,
+                        fullName: fullName
+                    } : null
+                };
+
+                return ok(response);
+            } catch (error) {
+                return error('Failed to update request status');
+            }
         }
 
         function deleteRequest() {
@@ -989,9 +999,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         function createEmployee() {
             if (!isAuthenticated() || !isAdmin()) return unauthorized();
             
-            // Log the received data for debugging
-            console.log('Received employee data:', body);
-
             // Check if employee ID already exists
             if (employees.find(x => x.employeeId === body.employeeId)) {
                 return error('Employee ID already exists');
@@ -1021,7 +1028,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 lastModifiedDate: new Date().toISOString()
             };
             
-            // Check each required field individually and log the result
+            // Check each required field individually
             const requiredFields = {
                 accountId: !!employee.accountId,
                 employeeId: !!employee.employeeId,
@@ -1030,8 +1037,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 hireDate: !!employee.hireDate,
                 salary: !!employee.salary
             };
-            
-            console.log('Field validation results:', requiredFields);
             
             // Check if any required field is missing
             const missingFields = Object.entries(requiredFields)
@@ -1127,7 +1132,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 lastModifiedDate: new Date().toISOString()
             };
             
-            employees.push(updatedEmployee);
+            employees[employeeIndex] = updatedEmployee;
             workflows.push(workflow);
             
             localStorage.setItem(employeesKey, JSON.stringify(employees));
@@ -1169,47 +1174,41 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             if (!isAuthenticated() || !isAdmin()) return unauthorized();
 
             const employeeId = idFromUrl();
-            
             // Find the employee index
             const employeeIndex = employees.findIndex(x => x.id === employeeId);
             if (employeeIndex === -1) {
-                console.error('Employee not found:', employeeId);
                 return notFound();
             }
-            
+
             // Get the current employee
             const employee = employees[employeeIndex];
             const oldDepartmentId = employee.departmentId;
             const newDepartmentId = Number(body.departmentId);
-            
+
             // Validate departments exist
             const oldDepartment = departments.find(d => d.id === oldDepartmentId);
             const newDepartment = departments.find(d => d.id === newDepartmentId);
             if (!oldDepartment || !newDepartment) {
-                console.error('Department not found. Old:', oldDepartmentId, 'New:', newDepartmentId);
                 return error('Department not found');
             }
 
             // Don't do anything if the department hasn't changed
             if (oldDepartmentId === newDepartmentId) {
-                console.log('Employee already in department:', newDepartmentId);
                 return error('Employee is already in this department');
             }
 
-            console.log('Transferring employee', employee.employeeId, 'from', oldDepartment.name, 'to', newDepartment.name);
-
-            // Update the employee's department
+            // Update the employee's department (replace in array, do NOT push)
             employees[employeeIndex] = {
                 ...employee,
                 departmentId: newDepartmentId,
                 lastModifiedDate: new Date().toISOString()
             };
-            
+
             // Get employee account for name
             const account = accounts.find(a => a.id === employee.accountId);
             const firstName = account?.firstName ? account.firstName.charAt(0).toUpperCase() + account.firstName.slice(1).toLowerCase() : '';
             const lastName = account?.lastName ? account.lastName.charAt(0).toUpperCase() + account.lastName.slice(1).toLowerCase() : '';
-            
+
             // Create workflow entry for transfer
             const workflow = {
                 id: newWorkflowId(),
@@ -1223,15 +1222,13 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 createdDate: new Date().toISOString(),
                 lastModifiedDate: new Date().toISOString()
             };
-            
+
             workflows.push(workflow);
-            
+
             // Save changes
             localStorage.setItem(employeesKey, JSON.stringify(employees));
             localStorage.setItem(workflowsKey, JSON.stringify(workflows));
 
-            console.log('Transfer completed successfully');
-            
             return ok({
                 ...employees[employeeIndex],
                 fullName: `${firstName} ${lastName}`.trim(),
@@ -1551,26 +1548,47 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         function getWorkflows() {
             if (!isAuthenticated()) return unauthorized();
             
-            // Sort workflows in descending order by creation date
-            const sortedWorkflows = [...workflows].sort((a, b) => {
-                const dateA = new Date(a.datetimecreated || a.createdDate);
-                const dateB = new Date(b.datetimecreated || b.createdDate);
-                return dateB.getTime() - dateA.getTime();
-            });
+            // Only include objects that are true workflows (type is 'Added', 'Updated', or 'Transferred' and do NOT have request-like properties)
+            const workflowTypes = ['Added', 'Updated', 'Transferred'];
+            const sortedWorkflows = [...workflows]
+                .filter(wf => {
+                    return (
+                        typeof wf.type === 'string' &&
+                        workflowTypes.includes(wf.type) &&
+                        !('items' in wf) &&
+                        !('typeId' in wf) &&
+                        !('description' in wf)
+                    );
+                })
+                .sort((a, b) => {
+                    const dateA = new Date(a.datetimecreated || a.createdDate);
+                    const dateB = new Date(b.datetimecreated || b.createdDate);
+                    return dateB.getTime() - dateA.getTime();
+                });
 
-            return ok(sortedWorkflows.map(workflow => {
-                const details = typeof workflow.details === 'object' ? 
-                    `${workflow.details.task}${workflow.details.additionalInfo ? ` - ${workflow.details.additionalInfo}` : ''}` :
-                    workflow.details || '';
-
+            const result = sortedWorkflows.map(workflow => {
+                // Ensure details is a string
+                let details = '';
+                if (typeof workflow.details === 'object') {
+                    details = workflow.details.task || '';
+                    if (workflow.details.additionalInfo) {
+                        details += ` - ${workflow.details.additionalInfo}`;
+                    }
+                } else {
+                    details = workflow.details || '';
+                }
+                // Always provide datetimecreated
+                const datetimecreated = workflow.datetimecreated || workflow.createdDate;
                 return {
                     id: workflow.id.toString(),
                     type: workflow.type,
                     details: details,
                     status: workflow.status,
-                    datetimecreated: workflow.datetimecreated || workflow.createdDate
+                    datetimecreated: datetimecreated,
+                    employeeId: workflow.employeeId
                 };
-            }));
+            });
+            return ok(result);
         }
 
         function getWorkflowById() {
@@ -1595,16 +1613,13 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             if (!isAuthenticated()) return unauthorized();
             
             const requestId = idFromUrl();
-            console.log('Looking for workflows with requestId:', requestId);
 
             const request = requests.find(x => x.id === requestId);
             if (!request) {
-                console.log('Request not found with id:', requestId);
                 return notFound();
             }
             
             const requestWorkflows = workflows.filter(x => x.requestId === requestId);
-            console.log('Found workflows:', requestWorkflows.length);
 
             // Sort workflows in descending order
             const sortedWorkflows = [...requestWorkflows].sort((a, b) => {
@@ -1631,16 +1646,27 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         function createWorkflow() {
             if (!isAuthenticated() || !isAdmin()) return unauthorized();
             
-            console.log('Received workflow data:', body);
+            // Format details as a string
+            let details = '';
+            if (typeof body.details === 'object') {
+                details = body.details.task || '';
+                if (body.details.additionalInfo) {
+                    details += ` - ${body.details.additionalInfo}`;
+                }
+            } else {
+                details = body.details || '';
+            }
 
+            const now = new Date().toISOString();
             const workflow = {
                 id: newWorkflowId(),
                 employeeId: body.employeeId,
                 type: body.type,
-                details: body.details,
-                status: body.status,
-                createdDate: new Date().toISOString(),
-                lastModifiedDate: new Date().toISOString()
+                details: details,
+                status: 'ForReviewing', // Default status
+                createdDate: now,
+                datetimecreated: now,
+                lastModifiedDate: now
             };
             
             // Validate required fields
@@ -1650,8 +1676,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
                 details: !!workflow.details,
                 status: !!workflow.status
             };
-            
-            console.log('Field validation results:', requiredFields);
             
             // Check if any required field is missing
             const missingFields = Object.entries(requiredFields)
@@ -1666,7 +1690,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             const employee = employees.find(e => e.id === workflow.employeeId);
             if (!employee) return error('Employee not found');
             
-            employees.push(workflow);
+            workflows.push(workflow);
             localStorage.setItem(workflowsKey, JSON.stringify(workflows));
             
             return ok({
@@ -1698,7 +1722,7 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             const employee = employees.find(e => e.id === updatedWorkflow.employeeId);
             if (!employee) return error('Employee not found');
             
-            employees.push(updatedWorkflow);
+            workflows[workflowIndex] = updatedWorkflow;
             localStorage.setItem(workflowsKey, JSON.stringify(workflows));
             
             return ok({

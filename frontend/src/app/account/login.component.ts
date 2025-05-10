@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
-import { first } from 'rxjs/operators';
+import { first, finalize } from 'rxjs/operators';
 
 import { AccountService, AlertService } from '@app/_services';
 
@@ -51,7 +51,10 @@ export class LoginComponent implements OnInit {
 
         this.loading = true;
         this.accountService.login(this.f.email.value, this.f.password.value)
-            .pipe(first())
+            .pipe(
+                first(),
+                finalize(() => this.loading = false)
+            )
             .subscribe({
                 next: () => {
                     // Navigate to return URL
@@ -59,7 +62,6 @@ export class LoginComponent implements OnInit {
                 },
                 error: error => {
                     this.alertService.error(error);
-                    this.loading = false;
                 }
             });
     }

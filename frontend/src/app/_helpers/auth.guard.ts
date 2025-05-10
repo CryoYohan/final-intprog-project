@@ -32,33 +32,18 @@ export class AuthGuard {
             return of(false);
         }
 
-        // Always try to refresh token before accessing protected routes
-        return this.accountService.refreshToken().pipe(
-            map(() => {
-                const currentAccount = this.accountService.accountValue;
-                
-                // Check if route requires specific roles
-                if (route.data['roles'] && !route.data['roles'].includes(currentAccount?.role)) {
-                    this.alertService.error('You are unauthorized to access this page.', { 
-                        keepAfterRouteChange: true,
-                        autoClose: true,
-                        autoCloseTimeout: 6000 // 6 seconds
-                    });
-                    this.router.navigate(['/']);
-                    return false;
-                }
-                
-                return true;
-            }),
-            catchError((error) => {
-                this.alertService.error('Your session has expired. Please log in again.', { 
-                    keepAfterRouteChange: true,
-                    autoClose: true,
-                    autoCloseTimeout: 6000 // 6 seconds
-                });
-                this.router.navigate(['/account/login'], { queryParams: { returnUrl: state.url } });
-                return of(false);
-            })
-        );
+        // Check if route requires specific roles
+        if (route.data['roles'] && !route.data['roles'].includes(account.role)) {
+            this.alertService.error('You are unauthorized to access this page.', { 
+                keepAfterRouteChange: true,
+                autoClose: true,
+                autoCloseTimeout: 6000 // 6 seconds
+            });
+            this.router.navigate(['/']);
+            return of(false);
+        }
+
+        // Token is valid, allow access
+        return of(true);
     }
 }
