@@ -1548,13 +1548,11 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         function getWorkflows() {
             if (!isAuthenticated()) return unauthorized();
             
-            // Only include objects that are true workflows (type is 'Added', 'Updated', or 'Transferred' and do NOT have request-like properties)
-            const workflowTypes = ['Added', 'Updated', 'Transferred'];
+            // Only filter out request-like objects, but allow any workflow type
             const sortedWorkflows = [...workflows]
                 .filter(wf => {
                     return (
                         typeof wf.type === 'string' &&
-                        workflowTypes.includes(wf.type) &&
                         !('items' in wf) &&
                         !('typeId' in wf) &&
                         !('description' in wf)
@@ -1661,44 +1659,31 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             const workflow = {
                 id: newWorkflowId(),
                 employeeId: body.employeeId,
-                type: body.type,
+                type: body.type || 'Other', // Default to 'Other' if not provided
                 details: details,
-                status: 'ForReviewing', // Default status
+                status: body.status || 'Completed', // Default to 'Completed' if not provided
                 createdDate: now,
                 datetimecreated: now,
                 lastModifiedDate: now
             };
-            
-            // Validate required fields
-            const requiredFields = {
-                employeeId: !!workflow.employeeId,
-                type: !!workflow.type,
-                details: !!workflow.details,
-                status: !!workflow.status
-            };
-            
-            // Check if any required field is missing
-            const missingFields = Object.entries(requiredFields)
-                .filter(([_, isValid]) => !isValid)
-                .map(([fieldName]) => fieldName);
-            
-            if (missingFields.length > 0) {
-                return error(`Required fields are missing: ${missingFields.join(', ')}`);
+
+            // Only validate that we have either employeeId or details
+            if (!workflow.employeeId && !workflow.details) {
+                return error('Either employeeId or details must be provided');
             }
 
-            // Validate employee exists
-            const employee = employees.find(e => e.id === workflow.employeeId);
-            if (!employee) return error('Employee not found');
+            // Validate employee exists if employeeId is provided
+            if (workflow.employeeId) {
+                const employee = employees.find(e => e.id === workflow.employeeId);
+                if (!employee) return error('Employee not found');
+            }
             
             workflows.push(workflow);
             localStorage.setItem(workflowsKey, JSON.stringify(workflows));
             
             return ok({
                 ...workflow,
-                employee: employee ? {
-                    ...employee,
-                    employeeId: employee.employeeId
-                } : null
+                id: workflow.id.toString()
             });
         }
 

@@ -5,7 +5,9 @@ module.exports = {
     getById,
     getByEmployeeId,
     create,
+    createOnboarding,
     update,
+    updateStatus,
     delete: _delete
 };
 
@@ -59,11 +61,43 @@ async function create(params) {
     return getById(workflow.id);
 }
 
+async function createOnboarding(params) {
+    // validate employee exists
+    const employee = await db.Employee.findByPk(params.employeeid);
+    if (!employee) throw 'Employee not found';
+    
+    // Get employee account details
+    const account = await db.Account.findByPk(employee.accountId);
+    if (!account) throw 'Employee account not found';
+    
+    // Create onboarding workflow
+    const workflow = new db.Workflow({
+        employeeid: params.employeeid,
+        type: params.type || 'Onboarding',
+        details: params.details || `Onboarding process started for ${account.firstName} ${account.lastName}`,
+        status: params.status || 'Pending'
+    });
+    
+    await workflow.save();
+    
+    return getById(workflow.id);
+}
+
 async function update(id, params) {
     const workflow = await getWorkflow(id);
     
     // copy params to workflow and save
     Object.assign(workflow, params);
+    await workflow.save();
+    
+    return getById(workflow.id);
+}
+
+async function updateStatus(id, status) {
+    const workflow = await getWorkflow(id);
+    
+    // Update status
+    workflow.status = status;
     await workflow.save();
     
     return getById(workflow.id);

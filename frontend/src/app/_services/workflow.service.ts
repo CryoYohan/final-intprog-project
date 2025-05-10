@@ -33,8 +33,8 @@ export class WorkflowService {
         return this.http.put<Workflow>(`${environment.apiUrl}/workflows/${id}`, params);
     }
 
-    changeStatus(id: string, status: string, comments: string = '') {
-        return this.http.put<Workflow>(`${environment.apiUrl}/workflows/${id}`, { status });
+    changeStatus(id: string, status: string) {
+        return this.http.put<Workflow>(`${environment.apiUrl}/workflows/${id}/status`, { status });
     }
 
     delete(id: string) {

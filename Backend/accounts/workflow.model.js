@@ -23,11 +23,7 @@ function model(sequelize) {
         },
         type: {
             type: DataTypes.STRING(50),
-            allowNull: false,
-            validate: {
-                isIn: [['Leave Request', 'Equipment Request', 'Department Change', 'Other',
-                       'Added', 'Updated', 'Department Transfer', 'Deleted']]
-            }
+            allowNull: false
         },
         details: {
             type: DataTypes.TEXT,
@@ -36,10 +32,7 @@ function model(sequelize) {
         status: {
             type: DataTypes.STRING(20),
             allowNull: false,
-            defaultValue: 'ForReviewing',
-            validate: {
-                isIn: [['ForReviewing', 'Completed']]
-            }
+            defaultValue: 'Completed'
         },
         datetimecreated: {
             type: DataTypes.DATE,

@@ -11,6 +11,7 @@ router.get('/', authorize(), getAll);
 router.get('/:id', authorize(), getById);
 router.get('/account/:id', authorize(), getByAccountId);
 router.post('/', authorize(Role.Admin), createSchema, create);
+router.post('/:id/transfer', authorize(Role.Admin), transferSchema, transfer);
 router.put('/:id', authorize(), updateSchema, update);
 router.delete('/:id', authorize(Role.Admin), _delete);
 
@@ -79,5 +80,19 @@ function update(req, res, next) {
 function _delete(req, res, next) {
     employeeService.delete(req.params.id)
         .then(() => res.json({ message: 'Employee deleted successfully' }))
+        .catch(next);
+}
+
+function transferSchema(req, res, next) {
+    const schema = Joi.object({
+        departmentId: Joi.number().required(),
+        reason: Joi.string().allow('', null)
+    });
+    validateRequest(req, next, schema);
+}
+
+function transfer(req, res, next) {
+    employeeService.transfer(req.params.id, req.body)
+        .then(employee => res.json(employee))
         .catch(next);
 } 

@@ -11,7 +11,9 @@ router.get('/', authorize(), getAll);
 router.get('/:id', authorize(), getById);
 router.get('/employee/:employeeid', authorize(), getByEmployeeId);
 router.post('/', authorize(), createSchema, create);
+router.post('/onboarding', authorize(), onboardingSchema, createOnboarding);
 router.put('/:id', authorize(), updateSchema, update);
+router.put('/:id/status', authorize(), updateStatusSchema, updateStatus);
 router.delete('/:id', authorize(), _delete);
 
 module.exports = router;
@@ -37,9 +39,9 @@ function getByEmployeeId(req, res, next) {
 function createSchema(req, res, next) {
     const schema = Joi.object({
         employeeid: Joi.number().required(),
-        type: Joi.string().required().valid('Leave Request', 'Equipment Request', 'Department Change', 'Other'),
+        type: Joi.string().required(),
         details: Joi.string().allow('', null),
-        status: Joi.string().required().valid('ForReviewing', 'Completed').default('ForReviewing'),
+        status: Joi.string().default('Completed'),
         comments: Joi.string().allow('', null),
         handledBy: Joi.number().allow(null)
     });
@@ -54,11 +56,9 @@ function create(req, res, next) {
 
 function updateSchema(req, res, next) {
     const schema = Joi.object({
-        type: Joi.string().valid('Leave Request', 'Equipment Request', 'Department Change', 'Other'),
+        type: Joi.string(),
         details: Joi.string().allow('', null),
-        status: Joi.string().valid('ForReviewing', 'Completed'),
-        comments: Joi.string().allow('', null),
-        handledBy: Joi.number().allow(null)
+        status: Joi.string()
     });
     validateRequest(req, next, schema);
 }
@@ -69,8 +69,37 @@ function update(req, res, next) {
         .catch(next);
 }
 
+function updateStatusSchema(req, res, next) {
+    const schema = Joi.object({
+        status: Joi.string().required()
+    });
+    validateRequest(req, next, schema);
+}
+
+function updateStatus(req, res, next) {
+    workflowService.updateStatus(req.params.id, req.body.status)
+        .then(workflow => res.json(workflow))
+        .catch(next);
+}
+
 function _delete(req, res, next) {
     workflowService.delete(req.params.id)
         .then(() => res.json({ message: 'Workflow deleted successfully' }))
+        .catch(next);
+}
+
+function onboardingSchema(req, res, next) {
+    const schema = Joi.object({
+        employeeid: Joi.number().required(),
+        details: Joi.string().allow('', null),
+        type: Joi.string().default('Onboarding'),
+        status: Joi.string().default('Pending')
+    });
+    validateRequest(req, next, schema);
+}
+
+function createOnboarding(req, res, next) {
+    workflowService.createOnboarding(req.body)
+        .then(workflow => res.json(workflow))
         .catch(next);
 } 

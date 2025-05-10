@@ -31,8 +31,20 @@ export class AccountService {
             if (storedAccount) {
                 const account = JSON.parse(storedAccount);
                 this.accountSubject.next(account);
-                // Always start the refresh timer when loading stored account
-                this.startRefreshTokenTimer();
+                
+                // Check if token needs refresh
+                if (!this.isTokenValid(account)) {
+                    this.refreshToken().subscribe({
+                        error: (error) => {
+                            console.error('Failed to refresh token on load:', error);
+                            this.clearAccountData();
+                            this.router.navigate(['/account/login']);
+                        }
+                    });
+                } else {
+                    // Token is still valid, start the refresh timer
+                    this.startRefreshTokenTimer();
+                }
             }
         } catch (error) {
             console.error('Error loading stored account:', error);
@@ -110,11 +122,19 @@ export class AccountService {
 
         this.refreshingToken = true;
         
+        // Check if we have a stored account first
+        const storedAccount = localStorage.getItem('account');
+        if (!storedAccount) {
+            this.refreshingToken = false;
+            return throwError(() => new Error('No stored account found'));
+        }
+
         return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { 
             withCredentials: true,
             headers: {
                 'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'Pragma': 'no-cache',
+                'Authorization': `Bearer ${JSON.parse(storedAccount).jwtToken}`
             }
         }).pipe(
             map(account => {
@@ -128,6 +148,7 @@ export class AccountService {
             catchError(error => {
                 console.error('Token refresh failed:', error);
                 this.clearAccountData();
+                this.router.navigate(['/account/login']);
                 return throwError(() => error);
             }),
             finalize(() => {

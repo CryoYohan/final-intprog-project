@@ -6,6 +6,7 @@ module.exports = {
     getByAccountId,
     create,
     update,
+    transfer,
     delete: _delete
 };
 
@@ -109,6 +110,36 @@ async function update(id, params) {
             details: `The Employee Named ${capitalizeFirstLetter(account.firstName)} ${capitalizeFirstLetter(account.lastName)} information was updated.`
         });
     }
+
+    return employee;
+}
+
+async function transfer(id, params) {
+    const employee = await getEmployee(id);
+    const oldDepartmentId = employee.departmentId;
+
+    // validate department exists
+    const newDepartment = await db.Department.findByPk(params.departmentId);
+    if (!newDepartment) throw 'New department not found';
+
+    // don't transfer if already in the same department
+    if (oldDepartmentId === params.departmentId) {
+        throw 'Employee is already in this department';
+    }
+
+    // update employee department
+    employee.departmentId = params.departmentId;
+    employee.updated = Date.now();
+    await employee.save();
+
+    // Get account and department details for the workflow log
+    const account = await db.Account.findByPk(employee.accountId);
+    const oldDept = oldDepartmentId ? await db.Department.findByPk(oldDepartmentId) : null;
+
+    // Create workflow entry for department transfer
+    await createWorkflowLog(employee.id, 'Department Transfer', {
+        details: `The Employee Named ${capitalizeFirstLetter(account.firstName)} ${capitalizeFirstLetter(account.lastName)} was transferred from ${oldDept ? oldDept.name : 'No Department'} to ${newDepartment.name} Department${params.reason ? ` - Reason: ${params.reason}` : ''}.`
+    });
 
     return employee;
 }
