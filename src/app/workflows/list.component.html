@@ -1,0 +1,75 @@
+<h1>
+    <ng-container *ngIf="!employeeId">All Workflows</ng-container>
+    <ng-container *ngIf="employeeId">
+        Workflows for Employee {{displayEmployeeId}}
+        <ng-container *ngIf="employeeFullName">- {{employeeFullName}}</ng-container>
+    </ng-container>
+</h1>
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">
+                <ng-container *ngIf="!employeeId">All Workflows</ng-container>
+                <ng-container *ngIf="employeeId">Employee Workflows</ng-container>
+            </h2>
+            <div *ngIf="employeeId">
+                <a routerLink="/workflows" class="btn btn-secondary">View All Workflows</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div *ngIf="loading" class="text-center">
+            <span class="spinner-border spinner-border-lg align-center"></span>
+        </div>
+        <div *ngIf="notFound" class="alert alert-warning">
+            No workflows found for Employee {{displayEmployeeId}}
+        </div>
+        <table *ngIf="!loading && !notFound && workflows" class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 10%">ID</th>
+                    <th style="width: 15%">Type</th>
+                    <th style="width: 30%">Details</th>
+                    <th style="width: 10%">Status</th>
+                    <th style="width: 20%">Date & Time Created</th>
+                    <th style="width: 15%">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let workflow of workflows">
+                    <td>{{workflow.id}}</td>
+                    <td>{{workflow.type}}</td>
+                    <td>{{workflow.details}}</td>
+                    <td>
+                        <span class="badge" [ngClass]="{
+                            'bg-info': workflow.status === WorkflowStatus.ForReviewing,
+                            'bg-success': workflow.status === WorkflowStatus.Completed
+                        }">{{workflow.status}}</span>
+                    </td>
+                    <td>{{workflow.datetimecreated | date:'medium'}}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" [disabled]="workflow.isUpdating">
+                                <span *ngIf="workflow.isUpdating" class="spinner-border spinner-border-sm me-1"></span>
+                                Actions
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" routerLink="view/{{workflow.id}}">View Details</a></li>
+                                <li *ngIf="isAdmin"><a class="dropdown-item" (click)="openStatusChangeModal(workflow.id, WorkflowStatus.ForReviewing)" [class.disabled]="workflow.status === WorkflowStatus.ForReviewing">Mark For Review</a></li>
+                                <li *ngIf="isAdmin"><a class="dropdown-item" (click)="openStatusChangeModal(workflow.id, WorkflowStatus.Completed)" [class.disabled]="workflow.status === WorkflowStatus.Completed">Mark Complete</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                <tr *ngIf="!loading && (!workflows || workflows.length === 0)">
+                    <td colspan="6" class="text-center">
+                        <span class="text-muted">No workflows found</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<app-confirm-modal #confirmModal [message]="confirmMessage" (confirmed)="onStatusChangeConfirmed()"></app-confirm-modal> 
