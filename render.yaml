@@ -20,5 +20,5 @@ services:
 
 databases:
   - name: final-intprog-project-qxy2-db
-    databaseName: management_19lc
+    databaseName: project_intprog_db_h7f4
     ipAllowList: [] 
