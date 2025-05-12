@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpResponse, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
 import { map, finalize, catchError } from 'rxjs/operators';
 import { environment } from '@environments/environment';
 import { Account, Role, RegistrationResponse } from '@app/_models';
@@ -179,14 +179,27 @@ export class AccountService implements IAccountService {
             sessionStorage.setItem('lastActiveUrl', currentUrl);
         }
         
-        return this.http.post<any>(`${baseUrl}/revoke-token`, {}, { withCredentials: true })
+        // Get the current token from the stored account
+        const token = this.accountValue?.jwtToken || '';
+        
+        // Always complete logout regardless of API response
+        const completeLogout = () => {
+            this.stopRefreshTokenTimer();
+            sessionStorage.removeItem('account');
+            this.accountSubject.next(null);
+            this.router.navigate(['/account/login']);
+        };
+        
+        // Try to revoke the token, but always complete logout
+        return this.http.post<any>(`${baseUrl}/revoke-token`, { token }, { withCredentials: true })
             .pipe(
-                finalize(() => {
-                    this.stopRefreshTokenTimer();
-                    sessionStorage.removeItem('account');
-                    this.accountSubject.next(null);
-                    this.router.navigate(['/account/login']);
-                })
+                catchError(error => {
+                    console.error('Token revocation error:', error);
+                    // Return an empty observable to prevent error propagation
+                    return of({ message: 'Logged out but token revocation failed' });
+                }),
+                // Always finalize with complete logout
+                finalize(() => completeLogout())
             );
     }
 
