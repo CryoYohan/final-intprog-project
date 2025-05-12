@@ -1,4 +1,4 @@
-// Wenceslao Kent S. BSIT -3B 
+// Wenceslao Kent S. BSIT -3B 5/12/2025
 const config = require('../config.json');
 const { Sequelize } = require('sequelize');
 
