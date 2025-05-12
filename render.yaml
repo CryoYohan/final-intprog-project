@@ -20,5 +20,5 @@ services:
 
 databases:
   - name: final-intprog-project-eqiv-db
-    databaseName: project_intprog_final
+    databaseName: intprog_final_db
     ipAllowList: [] 
