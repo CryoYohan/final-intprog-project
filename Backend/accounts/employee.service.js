@@ -1,11 +1,6 @@
 const db = require('../_helpers/db');
 
 module.exports = {
-    getAll,
-    getById,
-    getByAccountId,
-    create,
-    update,
     transfer,
     delete: _delete
 };
