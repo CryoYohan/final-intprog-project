@@ -20,5 +20,5 @@ services:
 
 databases:
   - name: final-intprog-project-ifwg-db
-    databaseName: inprog_db_final
+    databaseName: inprog_db_final_1nu8
     ipAllowList: [] 
