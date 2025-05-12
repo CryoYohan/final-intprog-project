@@ -1,3 +1,4 @@
+// Wenceslao Kent S. BSIT -3B 
 const config = require('../config.json');
 const { Sequelize } = require('sequelize');
 
