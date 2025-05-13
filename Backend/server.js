@@ -28,7 +28,9 @@ app.use(cors({
 // api routes
 app.use('/accounts', require('./accounts/accounts.controller'));
 app.use('/employees', require('./accounts/employees.controller'));
+app.use('/requests', require('./accounts/requests.controller'));
 app.use('/departments', require('./accounts/departments.controller'));
+app.use('/workflows', require('./accounts/workflow.controller'));
 
 // swagger docs route
 app.use('/api-docs', require('_helpers/swagger'));
