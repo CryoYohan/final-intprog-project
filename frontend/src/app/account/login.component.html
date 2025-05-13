@@ -43,17 +43,21 @@
                 {{ passwordError }}
             </div>
         </div>
-        <div class="form-row">
-            <div class="form-group col">
-                <button [disabled]="loading" class="btn btn-primary" type="submit">
-                    <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
-                    {{ loading ? 'Logging in...' : 'Login' }}
-                </button>
-                <a routerLink="../register" class="btn btn-link" [class.disabled]="loading"
-                    [attr.tabindex]="loading ? '-1' : null">Register</a>
+        <div class="form-row align-items-center">
+            <div class="form-group col-md-6 mb-2 mb-md-0">
+                <div class="d-grid gap-2 d-md-flex">
+                    <button [disabled]="loading" class="btn btn-primary px-4" type="submit">
+                        <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+                        {{ loading ? 'Logging in...' : 'Login' }}
+                    </button>
+                    <a routerLink="../register" class="btn btn-outline-secondary" [class.disabled]="loading"
+                        [attr.tabindex]="loading ? '-1' : null">
+                        Register
+                    </a>
+                </div>
             </div>
-            <div class="form-group col text-right">
-                <a routerLink="../forgot-password" class="btn btn-link pr-0" [class.disabled]="loading"
+            <div class="form-group col-md-6 text-md-end">
+                <a routerLink="../forgot-password" class="btn btn-link text-decoration-none" [class.disabled]="loading"
                     [attr.tabindex]="loading ? '-1' : null">
                     Forgot Password?
                 </a>
