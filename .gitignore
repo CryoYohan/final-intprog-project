@@ -28,3 +28,4 @@ speed-measure-plugins*.json
 !.vscode/extensions.json
 .history/*
 node_modules
+.angular/cache/
