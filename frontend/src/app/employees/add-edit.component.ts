@@ -37,7 +37,7 @@ export class AddEditComponent implements OnInit {
         private employeeService: EmployeeService,
         private departmentService: DepartmentService,
         private alertService: AlertService
-    ) {}
+    ) { }
 
     ngOnInit() {
         this.id = this.route.snapshot.params['id'];
@@ -77,7 +77,7 @@ export class AddEditComponent implements OnInit {
             .subscribe({
                 next: (accounts) => {
                     this.accounts = accounts;
-                    
+
                     if (!this.isAddMode) {
                         // In edit mode, first load the current employee
                         this.employeeService.getById(this.id)
@@ -139,13 +139,13 @@ export class AddEditComponent implements OnInit {
             .pipe(first())
             .subscribe(employees => {
                 const usedAccountIds = employees.map(e => e.accountId.toString());
-                
+
                 // Then load all accounts and filter them
                 this.accountService.getAll()
                     .pipe(first())
                     .subscribe(accounts => {
                         this.accounts = accounts;
-                        
+
                         // Filter accounts:
                         // 1. Remove admin accounts
                         // 2. Remove accounts that are already assigned to employees (except in edit mode for current account)
@@ -153,7 +153,7 @@ export class AddEditComponent implements OnInit {
                             const isAdmin = account.role === Role.Admin;
                             const isAlreadyAssigned = usedAccountIds.includes(account.id);
                             const isCurrentAccount = !this.isAddMode && account.id === this.form?.get('accountId')?.value;
-                            
+
                             return !isAdmin && (!isAlreadyAssigned || isCurrentAccount);
                         });
 
@@ -166,7 +166,7 @@ export class AddEditComponent implements OnInit {
                         }
 
                         // Sort accounts by name for better UX
-                        this.availableAccounts.sort((a, b) => 
+                        this.availableAccounts.sort((a, b) =>
                             `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
                         );
                     });
@@ -218,7 +218,7 @@ export class AddEditComponent implements OnInit {
         const formData = {
             ...this.form.getRawValue() // Get values from disabled fields too
         };
-        
+
         this.employeeService.create(formData)
             .pipe(first())
             .subscribe({
@@ -237,7 +237,7 @@ export class AddEditComponent implements OnInit {
         const formData = {
             ...this.form.getRawValue() // Get values from disabled fields too
         };
-        
+
         this.employeeService.update(this.id, formData)
             .pipe(first())
             .subscribe({
@@ -265,7 +265,7 @@ export class AddEditComponent implements OnInit {
 
     confirmDelete() {
         if (!this.employeeToDelete) return;
-        
+
         this.loading = true;
         this.employeeService.delete(this.employeeToDelete)
             .pipe(first())
@@ -359,14 +359,14 @@ export class AddEditComponent implements OnInit {
                     this.availableAccounts = this.accounts.filter(account => {
                         const isAdmin = account.role === Role.Admin;
                         const isAlreadyAssigned = usedAccountIds.includes(account.id?.toString());
-                        const isCurrentAccount = !this.isAddMode && 
+                        const isCurrentAccount = !this.isAddMode &&
                             this.currentEmployee?.accountId?.toString() === account.id?.toString();
 
                         return !isAdmin && (!isAlreadyAssigned || isCurrentAccount);
                     });
 
                     // Sort accounts by name for better UX
-                    this.availableAccounts.sort((a, b) => 
+                    this.availableAccounts.sort((a, b) =>
                         `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
                     );
                 },

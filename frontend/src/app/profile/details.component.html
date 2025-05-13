@@ -1,8 +1,40 @@
-<h1>My Profile</h1>
-<p>
-    <strong>Name: </strong> {{account.title}} {{account.firstName}} {{account.lastName}}<br />
-    <strong>Email: </strong> {{account.email}}<br />
-    <strong>Role: </strong>{{account.role}}<br />
-    <strong>Status: </strong>{{account.status}}<br />
-</p>
-<p><a routerLink="update">Update Profile</a></p>
+<div class="container my-5">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h2 class="mb-0">My Profile</h2>
+        </div>
+        <div class="card-body px-4 py-4">
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-muted">Name</label>
+                <div class="fs-5">{{account.title}} {{account.firstName}} {{account.lastName}}</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-muted">Email</label>
+                <div class="fs-5">{{account.email}}</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-muted">Role</label>
+                <div class="fs-5 text-capitalize">{{account.role}}</div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold text-muted">Status</label>
+                <div class="fs-5">
+                    <span class="badge" [ngClass]="{
+                        'bg-success': account.status === 'active',
+                        'bg-secondary': account.status !== 'active'
+                    }">
+                        {{account.status}}
+                    </span>
+                </div>
+            </div>
+            <div class="text-center">
+                <a routerLink="update" class="btn btn-outline-primary px-4">
+                    <i class="bi bi-pencil-square me-2"></i>Update Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optional: Add Bootstrap Icons CDN for the pencil icon -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">

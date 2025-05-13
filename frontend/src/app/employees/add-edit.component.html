@@ -5,7 +5,8 @@
             <div class="row">
                 <div class="col-md-6 mb-3" *ngIf="isAddMode">
                     <label class="form-label">Account</label>
-                    <select formControlName="accountId" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.accountId.errors }">
+                    <select formControlName="accountId" class="form-select"
+                        [ngClass]="{ 'is-invalid': submitted && f.accountId.errors }">
                         <option value="">Select Account...</option>
                         <option *ngFor="let account of availableAccounts" [value]="account.id">
                             {{account.id}} - {{account.firstName}} {{account.lastName}}
@@ -19,8 +20,10 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Employee ID & Name</label>
                     <div class="input-group">
-                        <input type="text" formControlName="employeeId" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.employeeId.errors }" />
-                        <span class="input-group-text bg-light" *ngIf="selectedAccountName">{{selectedAccountName | titlecase}}</span>
+                        <input type="text" formControlName="employeeId" class="form-control"
+                            [ngClass]="{ 'is-invalid': submitted && f.employeeId.errors }" />
+                        <span class="input-group-text bg-light" *ngIf="selectedAccountName">{{selectedAccountName |
+                            titlecase}}</span>
                     </div>
                     <div *ngIf="submitted && f.employeeId.errors" class="invalid-feedback">
                         <div *ngIf="f.employeeId.errors.required">Employee ID is required</div>
@@ -31,7 +34,8 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Department</label>
-                    <select formControlName="departmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && f.departmentId.errors }">
+                    <select formControlName="departmentId" class="form-select"
+                        [ngClass]="{ 'is-invalid': submitted && f.departmentId.errors }">
                         <option value="">Select Department...</option>
                         <option *ngFor="let dept of departments" [value]="dept.id">
                             {{dept.name}}
@@ -48,7 +52,8 @@
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Position</label>
-                    <input type="text" formControlName="position" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.position.errors }" placeholder="Enter position" />
+                    <input type="text" formControlName="position" class="form-control"
+                        [ngClass]="{ 'is-invalid': submitted && f.position.errors }" placeholder="Enter position" />
                     <div *ngIf="submitted && f.position.errors" class="invalid-feedback">
                         <div *ngIf="f.position.errors.required">Position is required</div>
                     </div>
@@ -58,7 +63,8 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Hire Date</label>
-                    <input type="date" formControlName="hireDate" class="form-control" [ngClass]="{ 'is-invalid': submitted && f.hireDate.errors }" />
+                    <input type="date" formControlName="hireDate" class="form-control"
+                        [ngClass]="{ 'is-invalid': submitted && f.hireDate.errors }" />
                     <div *ngIf="submitted && f.hireDate.errors" class="invalid-feedback">
                         <div *ngIf="f.hireDate.errors.required">Hire Date is required</div>
                     </div>
@@ -87,7 +93,8 @@
                         <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
                         Save Employee
                     </button>
-                    <button *ngIf="!isAddMode" type="button" class="btn btn-info text-white" (click)="openChangeDepartment()">
+                    <button *ngIf="!isAddMode" type="button" class="btn btn-info text-white"
+                        (click)="openChangeDepartment()">
                         Change Department
                     </button>
                 </div>
@@ -134,13 +141,15 @@
             <div class="modal-body">
                 <div class="mb-4">
                     <h6 class="text-muted mb-2">Employee</h6>
-                    <p class="h5 mb-3">{{currentEmployee?.employeeId}} - {{currentEmployee?.account?.firstName | titlecase}} {{currentEmployee?.account?.lastName | titlecase}}</p>
-                    
+                    <p class="h5 mb-3">{{currentEmployee?.employeeId}} - {{currentEmployee?.account?.firstName |
+                        titlecase}} {{currentEmployee?.account?.lastName | titlecase}}</p>
+
                     <h6 class="text-muted mb-2">Current Department</h6>
                     <p class="h5 mb-3">{{currentEmployee?.departmentName}}</p>
 
                     <h6 class="text-muted mb-2">New Department</h6>
-                    <select [(ngModel)]="newDepartmentId" class="form-select" [ngClass]="{ 'is-invalid': submitted && !newDepartmentId }">
+                    <select [(ngModel)]="newDepartmentId" class="form-select"
+                        [ngClass]="{ 'is-invalid': submitted && !newDepartmentId }">
                         <option value="">Select Department...</option>
                         <option *ngFor="let dept of availableDepartments" [value]="dept.id">
                             {{dept.name}}
@@ -157,7 +166,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" (click)="cancelChangeDepartment()">Cancel</button>
-                <button type="button" class="btn btn-info text-white" (click)="confirmChangeDepartment()" [disabled]="loading">
+                <button type="button" class="btn btn-info text-white" (click)="confirmChangeDepartment()"
+                    [disabled]="loading">
                     <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
                     Save Changes
                 </button>
@@ -167,4 +177,4 @@
 </div>
 
 <!-- Modal Backdrop -->
-<div class="modal-backdrop show" *ngIf="showDeleteModal || showDepartmentModal"></div> 
+<div class="modal-backdrop show" *ngIf="showDeleteModal || showDepartmentModal"></div>
