@@ -4,7 +4,79 @@ import { first } from 'rxjs/operators';
 import { DepartmentService, AlertService, EmployeeService } from '@app/_services';
 import { Department } from '@app/_models';
 
-
+@Component({ 
+    templateUrl: 'list.component.html',
+    styles: [`
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1050;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-dialog {
+            width: 100%;
+            max-width: 500px;
+            margin: 1.75rem auto;
+            position: relative;
+        }
+        .modal-content {
+            position: relative;
+            background-color: #fff;
+            border-radius: 0.3rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            border-top-left-radius: 0.3rem;
+            border-top-right-radius: 0.3rem;
+        }
+        .modal-body {
+            padding: 1rem;
+        }
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        .btn-close {
+            background: transparent;
+            border: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #000;
+            opacity: 0.5;
+            cursor: pointer;
+        }
+        .show {
+            display: flex !important;
+        }
+        .hide {
+            display: none !important;
+        }
+    `]
+})
 export class ListComponent implements OnInit {
     departments: Department[] = [];
     departmentToDelete = null;
